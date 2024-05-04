@@ -1,7 +1,7 @@
 # Import the dependencies.
 from flask import Flask, jsonify
 import datetime as dt
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, text, func
 from sqlalchemy.orm import Session
 from sqlalchemy.ext.automap import automap_base
 
@@ -51,13 +51,51 @@ def home():
 
 @app.route("/api/v1.0/precipitation")
 def precipitation():
-    session = Session(engine)
-    one_year_ago = dt.date.today() - dt.timedelta(days=365)
-    query = text("SELECT date, prcp FROM measurement WHERE date >= :date")
     
     #using recommended method for opening sessions in sqlalchemy 2.0
     with Session(engine) as session:
-        result = session.execute(query, {"date": one_year_ago})
+        #calculate most recent data in the db
+        
+        recent_date = session.query(func.max(Measurement.date)).scalar()
+        #making and obj in order to fin the date from one year ago 
+        recent_obj = dt.datetime.strptime(recent_date, '%Y-%m-%d')
+        one_year_ago = recent_obj - dt.timedelta(days=366)
+        
+        #query to find the precipitation data and dates
+        result = session.query(Measurement.date, Measurement.prcp).filter(Measurement.date >= one_year_ago).all()
         precipitation_data = {row.date: row.prcp for row in result}
         
     return jsonify(precipitation_data)
+
+@app.route("/api/v1.0/stations")
+def stations():
+    # This section uses the execute query command because is more simple
+    query = text("SELECT station FROM station")
+    with Session(engine) as session:
+        result = session.execute(query)
+        stations = [row.station for row in result]
+    return jsonify(stations)
+
+
+@app.route("/api/v1.0/tobs")
+def tobs():
+    # defined station with most activity for the query filter
+    most_active_id = 'USC00519281'
+    with Session(engine) as session:
+        #calculate most recent data in the db
+        recent_date = session.query(func.max(Measurement.date)).scalar()
+        #making and obj in order to fin the date from one year ago  
+        recent_obj = dt.datetime.strptime(recent_date, '%Y-%m-%d')
+        one_year_ago = recent_obj - dt.timedelta(days=366)
+        
+        station_query = session.query(Measurement.date, Measurement.tobs).filter(Measurement.station == most_active_id).\
+                        filter(Measurement.date >= one_year_ago).all()
+        tobs_data = {row.date: row.tobs for row in station_query}
+        
+    return jsonify(tobs_data)
+
+
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
