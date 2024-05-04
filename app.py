@@ -101,7 +101,9 @@ def start(start):
     
     #start of autoending session
     with Session(engine) as session:
+        #making sure that the start variable of the endpoint is a date
         start_date = dt.datetime.strptime(start, "%Y-%m-%d").date()
+        #query to obtain the min, avg and max using the date as a filter
         result =session.query(func.min(Measurement.tobs), 
                               func.avg(Measurement.tobs), 
                               func.max(Measurement.tobs)).filter(Measurement.date >= start_date).all()
@@ -113,10 +115,13 @@ def start(start):
 
 @app.route("/api/v1.0/<start>/<end>")
 def start_end(start, end):
-    
+    #start of autoending session
     with Session(engine) as session:
+        
+        #making sure that the start and end variable of the endpoint are dates
         start_date = dt.datetime.strptime(start, "%Y-%m-%d").date()
         end_date = dt.datetime.strptime(end, "%Y-%m-%d").date()
+        #query to obtain the min, avg and max using the dates as a filter
         result =session.query(func.min(Measurement.tobs), 
                               func.avg(Measurement.tobs), 
                               func.max(Measurement.tobs)).filter(Measurement.date >= start_date)\
