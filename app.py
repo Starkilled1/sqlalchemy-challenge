@@ -47,4 +47,17 @@ def home():
         <li>/api/v1.0/&lt;start&gt;/&lt;end&gt;</li>
     </ul>
     """)
+
+
+@app.route("/api/v1.0/precipitation")
+def precipitation():
+    session = Session(engine)
+    one_year_ago = dt.date.today() - dt.timedelta(days=365)
+    query = text("SELECT date, prcp FROM measurement WHERE date >= :date")
     
+    #using recommended method for opening sessions in sqlalchemy 2.0
+    with Session(engine) as session:
+        result = session.execute(query, {"date": one_year_ago})
+        precipitation_data = {row.date: row.prcp for row in result}
+        
+    return jsonify(precipitation_data)
