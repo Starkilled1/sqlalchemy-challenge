@@ -81,6 +81,8 @@ def stations():
 def tobs():
     # defined station with most activity for the query filter
     most_active_id = 'USC00519281'
+    
+    #start of autoending session
     with Session(engine) as session:
         #calculate most recent data in the db
         recent_date = session.query(func.max(Measurement.date)).scalar()
@@ -94,7 +96,34 @@ def tobs():
         
     return jsonify(tobs_data)
 
+@app.route("/api/v1.0/<start>")
+def start(start):
+    
+    #start of autoending session
+    with Session(engine) as session:
+        start_date = dt.datetime.strptime(start, "%Y-%m-%d").date()
+        result =session.query(func.min(Measurement.tobs), 
+                              func.avg(Measurement.tobs), 
+                              func.max(Measurement.tobs)).filter(Measurement.date >= start_date).all()
+        temps = list(result[0])
+    
+    return jsonify(temps)
+        
 
+
+@app.route("/api/v1.0/<start>/<end>")
+def start_end(start, end):
+    
+    with Session(engine) as session:
+        start_date = dt.datetime.strptime(start, "%Y-%m-%d").date()
+        end_date = dt.datetime.strptime(end, "%Y-%m-%d").date()
+        result =session.query(func.min(Measurement.tobs), 
+                              func.avg(Measurement.tobs), 
+                              func.max(Measurement.tobs)).filter(Measurement.date >= start_date)\
+                                                         .filter(Measurement.date <= end_date).all()
+        temps = list(result[0])
+    
+    return jsonify(temps)
 
 
 if __name__ == "__main__":
